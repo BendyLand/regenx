@@ -229,20 +229,15 @@ parse_group :: proc(p: ^Parser) -> (res: ^Node, err: Parse_Error) {
 	group_idx := 0
 	if match_str(p, "?:") {
 		group_idx = 0
-	}
-	else if match_str(p, "?=") {
+	} else if match_str(p, "?=") {
 		is_lookaround, positive, behind = true, true, false
-	}
-	else if match_str(p, "?!") {
+	} else if match_str(p, "?!") {
 		is_lookaround, positive, behind = true, false, false
-	}
-	else if match_str(p, "?<=") {
+	} else if match_str(p, "?<=") {
 		is_lookaround, positive, behind = true, true, true
-	}
-	else if match_str(p, "?<!") {
+	} else if match_str(p, "?<!") {
 		is_lookaround, positive, behind = true, false, true
-	}
-	else {
+	} else {
 		p.group_count += 1
 		group_idx = p.group_count
 	}

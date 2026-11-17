@@ -1,8 +1,8 @@
 package grepback
 
 import "core:fmt"
-import "core:os"
 import "core:mem"
+import "core:os"
 
 main :: proc() {
 	code := 0
@@ -31,5 +31,3 @@ main :: proc() {
 	}
 	os.exit(code)
 }
-
-

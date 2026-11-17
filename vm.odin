@@ -85,8 +85,7 @@ vm_exec :: proc(
 			// Guard against infinite zero-width loops like (a*)*
 			if last_split_sp[pc] == sp {
 				// Fall through to backtrack
-			}
-			else {
+			} else {
 				last_split_sp[pc] = sp
 				append(&stack, Thread{pc = inst.arg2, sp = sp, saves = saves})
 				pc = inst.arg1
@@ -112,8 +111,7 @@ vm_exec :: proc(
 				if sp >= int(inst.width) {
 					sub_ok, _ = vm_exec(prog, input, inst.arg1, sp - int(inst.width), saves)
 				}
-			}
-			else {
+			} else {
 				sub_ok, _ = vm_exec(prog, input, inst.arg1, sp, saves)
 			}
 			if sub_ok == inst.positive {

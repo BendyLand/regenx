@@ -38,12 +38,12 @@ synthesize :: proc(
 	scratch := context.temp_allocator
 	candidates := make([dynamic]Candidate, scratch)
 
-	// 1. Seed A: Needleman-Wunsch consensus alignment across positive examples
+	// Seed A: Needleman-Wunsch consensus alignment across positive examples
 	if nw_ast := seed_needleman_wunsch(pos, ignore_case, anchored, scratch); nw_ast != nil {
 		append(&candidates, evaluate_candidate(nw_ast, pos, neg, anchored, scratch))
 	}
 
-	// 2. Seed B: Exact literal alternation fallback
+	// Seed B: Exact literal alternation fallback
 	if alt_ast := seed_literal_alt(pos, ignore_case, anchored, scratch); alt_ast != nil {
 		append(&candidates, evaluate_candidate(alt_ast, pos, neg, anchored, scratch))
 	}
@@ -254,12 +254,10 @@ nw_align_and_merge :: proc(a, b: []^Node, alloc := context.temp_allocator) -> []
 			append(&rev, merge_atoms(a[i - 1], b[j - 1], alloc))
 			i -= 1
 			j -= 1
-		}
-		else if i > 0 && dp[i * cols + j] == dp[(i - 1) * cols + j] + GAP {
+		} else if i > 0 && dp[i * cols + j] == dp[(i - 1) * cols + j] + GAP {
 			append(&rev, make_optional(a[i - 1], alloc))
 			i -= 1
-		}
-		else {
+		} else {
 			append(&rev, make_optional(b[j - 1], alloc))
 			j -= 1
 		}
@@ -313,8 +311,7 @@ string_to_atoms :: proc(s: string, ignore_case: bool, alloc := context.temp_allo
 			bitmap_set(&bm, b)
 			bitmap_set(&bm, b ~ 0x20)
 			atoms[i] = new_node(bm, alloc)
-		}
-		else {
+		} else {
 			atoms[i] = new_node(b, alloc)
 		}
 	}
@@ -460,23 +457,17 @@ generate_neighbors :: proc(
 	}
 
 	// Promote single atom to + (min=1, max=-1) when positive examples vary in length
-	if cand.pos_hits == len(pos) && cand.neg_hits > 0 {
-		prog := compile(cand.ast, alloc)
-		for bad in neg {
-			caps: [2]int
-			if !vm_match(prog, bad, captures = caps[:], anchored = anchored) {
-				continue
-			}
-			matched_tail := anchored ? bad : bad[caps[0]:]
-			if la_ast := inject_negative_lookahead(
-				seq,
-				matched_tail,
-				ignore_case,
-				anchored,
+	if cand.pos_hits < len(pos) {
+		for node, idx in seq {
+			if _, is_anchor := node.(Anchor_Kind); is_anchor do continue
+			if r, is_rep := node.(Repeat_Node); is_rep && r.max == -1 do continue
+
+			cloned := slice.clone(seq, alloc)
+			cloned[idx] = new_node(
+				Repeat_Node{child = strip_repeat(node), min = 1, max = -1, greedy = true},
 				alloc,
-			); la_ast != nil {
-				append(&out, la_ast)
-			}
+			)
+			append(&out, new_node(cloned, alloc))
 		}
 	}
 
@@ -517,8 +508,7 @@ inject_negative_lookahead :: proc(
 		if lit, ok := seq[seq_idx].(u8); ok && lit == bad[str_idx] {
 			seq_idx += 1
 			str_idx += 1
-		}
-		else {
+		} else {
 			break
 		}
 	}

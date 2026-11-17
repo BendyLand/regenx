@@ -4,7 +4,7 @@ import "core:fmt"
 
 print_usage :: proc() {
 	fmt.println(
-`Usage:
+		`Usage:
   grepback [flags] <pattern> [<file>]      Search file or stdin for pattern
   grepback [-t | --tui] [<file>]           Launch interactive synthesizer TUI
   grepback -p <str> [-x <str>] [<file>]    Synthesize regex from examples
@@ -24,6 +24,6 @@ Synthesizer Flags:
 
 General:
   -h, --help             Show this help message and exit
-  --                     End of command flags`
+  --                     End of command flags`,
 	)
 }

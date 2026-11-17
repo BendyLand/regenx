@@ -3,14 +3,14 @@ package grepback
 import "core:fmt"
 
 Op :: enum u8 {
-	Char,      // match literal byte `arg1`
-	Bitmap,    // match against `program.bitmaps[arg1]`
-	Split,     // push `arg2` onto backtrack stack, jump to `arg1`
-	Jmp,       // unconditional jump to `arg1`
-	Save,      // record current string pos into `saves[arg1]`
-	Anchor,    // check Anchor_Kind(arg1)
-	Lookaround,// evaluate sub-program at `arg1`; jump to `arg2` on success
-	Match,     // accept match
+	Char,        // match literal byte `arg1`
+	Bitmap,      // match against `program.bitmaps[arg1]`
+	Split,       // push `arg2` onto backtrack stack, jump to `arg1`
+	Jmp,         // unconditional jump to `arg1`
+	Save,        // record current string pos into `saves[arg1]`
+	Anchor,      // check Anchor_Kind(arg1)
+	Lookaround,  // evaluate sub-program at `arg1`; jump to `arg2` on success
+	Match,       // accept match
 }
 
 Inst :: struct {
@@ -46,11 +46,7 @@ compile :: proc(root: ^Node, allocator := context.allocator) -> Program {
 	compile_node(&c, root)
 	emit(&c, .Save, 1)
 	emit(&c, .Match)
-	return Program {
-		code       = c.code[:],
-		bitmaps    = c.bitmaps[:],
-		num_groups = c.max_group,
-	}
+	return Program{code = c.code[:], bitmaps = c.bitmaps[:], num_groups = c.max_group}
 }
 
 destroy_program :: proc(prog: Program, allocator := context.allocator) {
@@ -216,7 +212,14 @@ emit :: proc(
 	pc := current_pc(c)
 	append(
 		&c.code,
-		Inst{op = op, arg1 = arg1, arg2 = arg2, positive = positive, behind = behind, width = width},
+		Inst {
+			op = op,
+			arg1 = arg1,
+			arg2 = arg2,
+			positive = positive,
+			behind = behind,
+			width = width,
+		},
 	)
 	return pc
 }

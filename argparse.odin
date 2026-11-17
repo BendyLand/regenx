@@ -1,7 +1,6 @@
 package grepback
 
 import "core:fmt"
-import "core:os"
 import "core:strings"
 
 Arg_Error :: enum {
@@ -70,7 +69,7 @@ parse_args :: proc(args: []string, allocator := context.allocator) -> (opts: Opt
 			switch name {
 			case "help":
 				opts.mode = .Help
-			case "tui", "synth":
+			case "tui", "synth", "interactive":
 				explicit_tui = true
 			case "ignore-case":
 				opts.ignore_case = true
@@ -163,10 +162,12 @@ parse_args :: proc(args: []string, allocator := context.allocator) -> (opts: Opt
 		opts.mode = explicit_tui ? .TUI : .Synth
 	}
 	else if len(opts.positional) == 0 {
-		if !os.is_tty(os.stdin) {
-			return fail(&opts, .Missing_Value, "missing search pattern (use -t to launch TUI)")
-		}
-		opts.mode = .TUI
+		// Old behavior was to default to TUI with no args.
+		// Uncomment this to restore that behavior.
+		// if !os.is_tty(os.stdin) {
+		// 	return fail(&opts, .Missing_Value, "missing search pattern (use -t to launch TUI)")
+		// }
+		opts.mode = .Help
 	}
 	else {
 		if len(opts.positional) > 2 {

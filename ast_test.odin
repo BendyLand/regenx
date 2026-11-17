@@ -46,6 +46,6 @@ test_vm_execution :: proc(t: ^testing.T) {
 	prog2 := compile(ast2, alloc)
 	caps: [2]int
 	testing.expect(t, vm_match(prog2, "Total: $42.95 USD", captures = caps[:]))
-	testing.expect_value(t, caps[0], 8)  // starts right after '$'
+	testing.expect_value(t, caps[0], 8) // starts right after '$'
 	testing.expect_value(t, caps[1], 13) // ends after '5'
 }

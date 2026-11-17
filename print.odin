@@ -29,8 +29,7 @@ write_node :: proc(b: ^strings.Builder, node: ^Node) {
 				strings.write_string(b, "(?:")
 				write_node(b, child)
 				strings.write_byte(b, ')')
-			}
-			else {
+			} else {
 				write_node(b, child)
 			}
 		}
@@ -55,27 +54,21 @@ write_node :: proc(b: ^strings.Builder, node: ^Node) {
 			strings.write_string(b, "(?:")
 			write_node(b, v.child)
 			strings.write_byte(b, ')')
-		}
-		else {
+		} else {
 			write_node(b, v.child)
 		}
 		// Quantifier suffix
 		if v.min == 0 && v.max == 1 {
 			strings.write_byte(b, '?')
-		}
-		else if v.min == 0 && v.max == -1 {
+		} else if v.min == 0 && v.max == -1 {
 			strings.write_byte(b, '*')
-		}
-		else if v.min == 1 && v.max == -1 {
+		} else if v.min == 1 && v.max == -1 {
 			strings.write_byte(b, '+')
-		}
-		else if v.max == -1 {
+		} else if v.max == -1 {
 			fmt.sbprintf(b, "{{%d,}}", v.min)
-		}
-		else if v.min == v.max {
+		} else if v.min == v.max {
 			fmt.sbprintf(b, "{{%d}}", v.min)
-		}
-		else {
+		} else {
 			fmt.sbprintf(b, "{{%d,%d}}", v.min, v.max)
 		}
 		if !v.greedy {
@@ -84,8 +77,7 @@ write_node :: proc(b: ^strings.Builder, node: ^Node) {
 	case Group_Node:
 		if v.index == 0 {
 			strings.write_string(b, "(?:")
-		}
-		else {
+		} else {
 			strings.write_byte(b, '(')
 		}
 		write_node(b, v.child)
@@ -102,8 +94,7 @@ write_node :: proc(b: ^strings.Builder, node: ^Node) {
 	case Lookaround_Node:
 		if v.behind {
 			strings.write_string(b, v.positive ? "(?<=" : "(?<!")
-		}
-		else {
+		} else {
 			strings.write_string(b, v.positive ? "(?=" : "(?!")
 		}
 		write_node(b, v.child)
@@ -174,8 +165,7 @@ write_bitmap :: proc(b: ^strings.Builder, bm: Bitmap) {
 			write_escaped_class_byte(b, u8(i))
 			strings.write_byte(b, '-')
 			write_escaped_class_byte(b, u8(j))
-		}
-		else {
+		} else {
 			for k in i ..= j {
 				write_escaped_class_byte(b, u8(k))
 			}
@@ -200,8 +190,7 @@ write_escaped_literal :: proc(b: ^strings.Builder, c: u8) {
 	case:
 		if c < 0x20 || c >= 0x7f {
 			fmt.sbprintf(b, `\x%02x`, c)
-		}
-		else {
+		} else {
 			strings.write_byte(b, c)
 		}
 	}
@@ -222,8 +211,7 @@ write_escaped_class_byte :: proc(b: ^strings.Builder, c: u8) {
 	case:
 		if c < 0x20 || c >= 0x7f {
 			fmt.sbprintf(b, `\x%02x`, c)
-		}
-		else {
+		} else {
 			strings.write_byte(b, c)
 		}
 	}
