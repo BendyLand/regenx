@@ -9,6 +9,8 @@ debug:
 
 test:
     odin test . -debug
-    ./tests.sh && bat test_results
+    odin build . -debug
+    ./tests.sh
+    batcat test_results
 
     

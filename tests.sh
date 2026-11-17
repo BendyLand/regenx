@@ -19,6 +19,14 @@ if [[ -f ./grepback ]]; then
   ./grepback "(?<=parse_\w+)proc" parser.odin >> test_results 2>&1 
   echo -e "\n\n==================== TEST OUTPUT 9 ====================\n\n" >> test_results
   echo "hello" | ./grepback >> test_results 2>&1
+  echo -e "\n\n==================== TEST OUTPUT 10 ====================\n\n" >> test_results
+  ./grepback -p item_12 -p item_99 -x item_ab >> test_results 2>&1
+  echo -e "\n\n==================== TEST OUTPUT 11 ====================\n\n" >> test_results
+  ./grepback -p foo_user -p foo_guest -x foo_admin >> test_results 2>&1
+  echo -e "\n\n==================== TEST OUTPUT 12 ====================\n\n" >> test_results
+  ./grepback -p foo_user -p foo_guest -p foo_root -x foo_admin >> test_results 2>&1
+  echo -e "\n\n==================== TEST OUTPUT 13 ====================\n\n" >> test_results
+  ./grepback -u -p ERR_404 -p ERR_503 -x "2026-11-17 INFO: healthy" -x "2026-11-17 WARN: ERR_200" >> test_results 2>&1 
 else
   echo "Binary not built yet."
 fi

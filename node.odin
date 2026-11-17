@@ -26,9 +26,9 @@ Lookaround_Node :: struct {
 }
 
 Node :: union {
-	u8,       // Literal byte
-	Bitmap,   // Character class [...]
-	[]^Node,  // Concat (use a distinct wrapper struct for Alt)
+	u8,         // Literal byte
+	Bitmap,     // Character class [...]
+	[]^Node,    // Concat (use a distinct wrapper struct for Alt)
 	Alt_Node,
 	Repeat_Node,
 	Group_Node,

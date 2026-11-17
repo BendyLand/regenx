@@ -30,6 +30,7 @@ Options :: struct {
 	count_only:   bool,
 	only_match:   bool,
 	no_color:     bool,
+	unanchored:   bool,
 	pos_examples: [dynamic]string,
 	neg_examples: [dynamic]string,
 	positional:   [dynamic]string,
@@ -83,6 +84,8 @@ parse_args :: proc(args: []string, allocator := context.allocator) -> (opts: Opt
 				opts.only_match = true
 			case "no-color":
 				opts.no_color = true
+			case "unanchored":
+				opts.unanchored = true
 			case "pos":
 				if !has_eq {
 					i += 1
@@ -119,6 +122,8 @@ parse_args :: proc(args: []string, allocator := context.allocator) -> (opts: Opt
 				opts.count_only = true
 			case 'o':
 				opts.only_match = true
+			case 'u':
+				opts.unanchored = true
 			case 'p':
 				if j + 1 < len(arg) {
 					append(&opts.pos_examples, arg[j + 1:])

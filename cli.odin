@@ -10,9 +10,7 @@ run_cli :: proc(opts: Options) -> int {
 		fmt.eprintf("grepback: parse error (%v) in pattern %q\n", p_err, opts.pattern)
 		return 2
 	}
-
 	prog := compile(ast, context.temp_allocator)
-
 	data: []byte
 	err: os.Error
 	if opts.filename == "" {
@@ -26,33 +24,27 @@ run_cli :: proc(opts: Options) -> int {
 		return 2
 	}
 	defer delete(data)
-
 	use_color := !opts.no_color && os.is_tty(os.stdout)
 	match_count := 0
 	line_num := 0
-
 	it := string(data)
 	for line in strings.split_lines_iterator(&it) {
 		line_num += 1
 		caps: [2]int
 		matched := vm_match(prog, line, captures = caps[:], search_from = 0)
-
 		if opts.invert_match {
 			matched = !matched
 		}
 		if !matched {
 			continue
 		}
-
 		match_count += 1
 		if opts.count_only {
 			continue
 		}
-
 		if opts.line_numbers {
 			fmt.printf("%d:", line_num)
 		}
-
 		if opts.invert_match || !use_color {
 			if opts.only_match && !opts.invert_match {
 				print_only_matches(prog, line, caps)
@@ -65,11 +57,9 @@ run_cli :: proc(opts: Options) -> int {
 			print_highlighted_line(prog, line, caps, opts.only_match)
 		}
 	}
-
 	if opts.count_only {
 		fmt.println(match_count)
 	}
-
 	return match_count > 0 ? 0 : 1
 }
 
@@ -134,11 +124,40 @@ run :: proc() -> int {
 	case .Search:
 		return run_cli(args)
 	case .Synth:
-		fmt.println("Synth mode not wired yet")
-		return 0
+		return run_headless_synth(args)
 	case .TUI:
 		fmt.println("TUI mode not wired yet")
 		return 0
 	}
 	return 0
 }
+
+run_headless_synth :: proc(opts: Options) -> int {
+	if len(opts.pos_examples) == 0 {
+		fmt.eprintln("grepback: --synth requires at least one -p / --pos example")
+		return 2
+	}
+	results := synthesize(
+		opts.pos_examples[:],
+		opts.neg_examples[:],
+		opts.ignore_case,
+		anchored = !opts.unanchored,
+		top_k = 5,
+		allocator = context.temp_allocator,
+	)
+	for r, idx in results {
+		status := r.valid ? "VALID" : "PARTIAL"
+		fmt.printf(
+			"%d. [%s] +%d/%d -%d (mdl=%d)  %s\n",
+			idx + 1,
+			status,
+			r.pos_hits,
+			len(opts.pos_examples),
+			r.neg_hits,
+			r.mdl_score,
+			r.pattern,
+		)
+	}
+	return len(results) > 0 && results[0].valid ? 0 : 1
+}
+
