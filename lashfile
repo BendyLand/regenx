@@ -1,0 +1,13 @@
+build:
+    odin build .
+
+run:
+    odin run .
+
+debug:
+    odin build . -debug
+
+test:
+    odin test . -debug
+
+    
