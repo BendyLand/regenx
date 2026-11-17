@@ -20,11 +20,11 @@ test_parser_round_trip :: proc(t: ^testing.T) {
 	alloc := context.temp_allocator
 	cases := []string{`^foo_(?!admin$)[a-z]+$`, `(?<=foo|bar)\d{2,4}?`, `a(?:b|c)*`, `[^A-Z]\w+\b`}
 	for pat in cases {
-		ast, err := parse(pat, alloc)
+		ast, err := parse(pat, false, alloc)
 		testing.expect_value(t, err, Parse_Error.None)
 		testing.expect_value(t, ast_to_string(ast, alloc), pat)
 	}
-	_, bad_lb := parse(`(?<=a+)foo`, alloc)
+	_, bad_lb := parse(`(?<=a+)foo`, false, alloc)
 	testing.expect_value(t, bad_lb, Parse_Error.Variable_Length_Lookbehind)
 }
 
@@ -33,7 +33,7 @@ test_vm_execution :: proc(t: ^testing.T) {
 	defer free_all(context.temp_allocator)
 	alloc := context.temp_allocator
 	// Negative lookahead from spec
-	ast1, err1 := parse(`^foo_(?!admin$)[a-z]+$`, alloc)
+	ast1, err1 := parse(`^foo_(?!admin$)[a-z]+$`, false, alloc)
 	testing.expect_value(t, err1, Parse_Error.None)
 	prog1 := compile(ast1, alloc)
 	testing.expect(t, vm_match(prog1, "foo_user"))
@@ -41,7 +41,7 @@ test_vm_execution :: proc(t: ^testing.T) {
 	testing.expect(t, !vm_match(prog1, "foo_admin"))
 	testing.expect(t, vm_match(prog1, "foo_adminx"))
 	// Fixed-width lookbehind + capture group
-	ast2, err2 := parse(`(?<=\$)\d+\.\d{2}`, alloc)
+	ast2, err2 := parse(`(?<=\$)\d+\.\d{2}`, false, alloc)
 	testing.expect_value(t, err2, Parse_Error.None)
 	prog2 := compile(ast2, alloc)
 	caps: [2]int

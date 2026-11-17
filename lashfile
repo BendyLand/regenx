@@ -9,5 +9,6 @@ debug:
 
 test:
     odin test . -debug
+    ./tests.sh && bat test_results
 
     

@@ -19,13 +19,22 @@ Parser :: struct {
 	src:         string,
 	pos:         int,
 	group_count: int,
+	ignore_case: bool,
 	allocator:   runtime.Allocator,
 }
 
-parse :: proc(pattern: string, allocator := context.allocator) -> (res: ^Node, err: Parse_Error) {
+parse :: proc(
+	pattern: string,
+	ignore_case := false,
+	allocator := context.allocator,
+) -> (
+	res: ^Node,
+	err: Parse_Error,
+) {
 	p := Parser {
-		src       = pattern,
-		allocator = allocator,
+		src         = pattern,
+		ignore_case = ignore_case,
+		allocator   = allocator,
 	}
 	root := parse_alt(&p) or_return
 	if p.pos < len(p.src) {
@@ -208,7 +217,7 @@ parse_atom :: proc(p: ^Parser) -> (^Node, Parse_Error) {
 	case '*', '+', '?', '{':
 		return nil, .Nothing_To_Repeat
 	case:
-		return new_node(b, p.allocator), .None
+		return make_literal(p, b), .None
 	}
 }
 
@@ -287,7 +296,7 @@ parse_escape :: proc(p: ^Parser) -> (res: ^Node, err: Parse_Error) {
 		return new_node(Anchor_Kind.Word_Boundary, p.allocator), .None
 	case:
 		lit := parse_escaped_byte(p, b) or_return
-		return new_node(lit, p.allocator), .None
+		return make_literal(p, lit), .None
 	}
 }
 
@@ -400,6 +409,14 @@ parse_class :: proc(p: ^Parser) -> (res: ^Node, err: Parse_Error) {
 		}
 		bitmap_set(&bm, b)
 	}
+	if p.ignore_case {
+		for c in u8('a') ..= u8('z') {
+			if bitmap_has(bm, c) || bitmap_has(bm, c ~ 0x20) {
+				bitmap_set(&bm, c)
+				bitmap_set(&bm, c ~ 0x20)
+			}
+		}
+	}
 	if negated {
 		bm = bitmap_invert(bm)
 	}
@@ -441,4 +458,15 @@ calc_fixed_width :: proc(node: ^Node) -> (width: int, ok: bool) {
 		return calc_fixed_width(v.child)
 	}
 	return 0, false
+}
+
+@(private = "file")
+make_literal :: proc(p: ^Parser, b: u8) -> ^Node {
+	if p.ignore_case && ((b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z')) {
+		bm: Bitmap
+		bitmap_set(&bm, b)
+		bitmap_set(&bm, b ~ 0x20)
+		return new_node(bm, p.allocator)
+	}
+	return new_node(b, p.allocator)
 }

@@ -4,51 +4,141 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 
-run_cli :: proc(pattern: string, filepath: string) -> int {
-	ast, err := parse(pattern, context.temp_allocator)
-	if err != .None {
-		fmt.eprintf("grepback: parse error (%v) in pattern %q\n", err, pattern)
+run_cli :: proc(opts: Options) -> int {
+	ast, p_err := parse(opts.pattern, opts.ignore_case, context.temp_allocator)
+	if p_err != .None {
+		fmt.eprintf("grepback: parse error (%v) in pattern %q\n", p_err, opts.pattern)
 		return 2
 	}
 
 	prog := compile(ast, context.temp_allocator)
-	defer free_all(context.temp_allocator)
-	data, err2 := os.read_entire_file(filepath, context.allocator)
-	if err2 != nil {
-		fmt.eprintf("grepback: could not read file %q\n", filepath)
+
+	data: []byte
+	err: os.Error
+	if opts.filename == "" {
+		data, err = os.read_entire_file(os.stdin, context.allocator)
+	}
+	else {
+		data, err = os.read_entire_file(opts.filename, context.allocator)
+	}
+	if err != nil {
+		fmt.eprintf("grepback: could not read file %q\n", opts.filename)
 		return 2
 	}
 	defer delete(data)
 
-	any_match := false
+	use_color := !opts.no_color && os.is_tty(os.stdout)
+	match_count := 0
+	line_num := 0
+
 	it := string(data)
 	for line in strings.split_lines_iterator(&it) {
+		line_num += 1
 		caps: [2]int
-		if !vm_match(prog, line, captures = caps[:], search_from = 0) {
+		matched := vm_match(prog, line, captures = caps[:], search_from = 0)
+
+		if opts.invert_match {
+			matched = !matched
+		}
+		if !matched {
 			continue
 		}
-		any_match = true
-		print_highlighted_line(prog, line, caps)
+
+		match_count += 1
+		if opts.count_only {
+			continue
+		}
+
+		if opts.line_numbers {
+			fmt.printf("%d:", line_num)
+		}
+
+		if opts.invert_match || !use_color {
+			if opts.only_match && !opts.invert_match {
+				print_only_matches(prog, line, caps)
+			}
+			else {
+				fmt.println(line)
+			}
+		}
+		else {
+			print_highlighted_line(prog, line, caps, opts.only_match)
+		}
 	}
-	return any_match ? 0 : 1
+
+	if opts.count_only {
+		fmt.println(match_count)
+	}
+
+	return match_count > 0 ? 0 : 1
 }
 
 @(private = "file")
-print_highlighted_line :: proc(prog: Program, line: string, first_caps: [2]int) {
-	ANSI_RED :: "\x1b[1;31m"
-	ANSI_RESET :: "\x1b[0m"
+print_only_matches :: proc(prog: Program, line: string, first_caps: [2]int) {
 	caps := first_caps
-	printed_up_to := 0
 	for {
-		start, end := caps[0], caps[1]
-		fmt.print(line[printed_up_to:start])
-		fmt.printf("%s%s%s", ANSI_RED, line[start:end], ANSI_RESET)
-		printed_up_to = end
-		// Advance at least 1 byte on zero-width matches (e.g. \b or a*) to prevent loops
-		next_pos := max(end, start + 1)
-		if next_pos > len(line) || !vm_match(prog, line, captures = caps[:], search_from = next_pos) {
+		fmt.println(line[caps[0]:caps[1]])
+		next_pos := max(caps[1], caps[0] + 1)
+		if next_pos > len(line) ||
+		   !vm_match(prog, line, captures = caps[:], search_from = next_pos) {
 			break
 		}
 	}
-	fmt.println(line[printed_up_to:])
+}
+
+@(private = "file")
+print_highlighted_line :: proc(prog: Program, line: string, first_caps: [2]int, only_match: bool) {
+	ANSI_RED :: "\x1b[1;31m"
+	ANSI_RESET :: "\x1b[0m"
+
+	caps := first_caps
+	printed_up_to := 0
+
+	for {
+		start, end := caps[0], caps[1]
+		if only_match {
+			fmt.printf("%s%s%s\n", ANSI_RED, line[start:end], ANSI_RESET)
+		}
+		else {
+			fmt.print(line[printed_up_to:start])
+			fmt.printf("%s%s%s", ANSI_RED, line[start:end], ANSI_RESET)
+			printed_up_to = end
+		}
+
+		next_pos := max(end, start + 1)
+		if next_pos > len(line) ||
+		   !vm_match(prog, line, captures = caps[:], search_from = next_pos) {
+			break
+		}
+	}
+
+	if !only_match {
+		fmt.println(line[printed_up_to:])
+	}
+}
+
+run :: proc() -> int {
+	defer free_all(context.temp_allocator)
+
+	args := parse_args(os.args[1:], context.temp_allocator)
+	if args.err != .None {
+		fmt.eprintfln("grepback: %s", args.err_msg)
+		print_usage()
+		return 2
+	}
+
+	switch args.mode {
+	case .Help:
+		print_usage()
+		return 0
+	case .Search:
+		return run_cli(args)
+	case .Synth:
+		fmt.println("Synth mode not wired yet")
+		return 0
+	case .TUI:
+		fmt.println("TUI mode not wired yet")
+		return 0
+	}
+	return 0
 }
