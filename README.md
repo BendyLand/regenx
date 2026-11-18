@@ -47,8 +47,8 @@ Search is **unanchored** (substring-based) by default and reads from a file or `
 # Count matching lines (-c) case-insensitively (-i)
 ./regenx -ic "error" app.log
 
-# Search from stdin
-cat server.log | ./regenx "status=5\d\d"
+# Search from stdin using '-' (or by omitting the file argument)
+cat server.log | ./regenx "status=5\d\d" -
 ```
 
 ### 2. Headless Regex Synthesis (`-p` / `-x`)
@@ -74,8 +74,9 @@ Launch the TUI standalone or load a file into the `[?] Test Probes` pane for liv
 # Launch empty TUI
 ./regenx -t
 
-# Load a file for live regex preview and example selection
+# Load a file (or piped stdin via '-') for live regex preview and example selection
 ./regenx -t parser.odin
+cat server.log | ./regenx -t -
 
 # Compose the synthesized regex directly into a CLI search
 ./regenx -n "$(./regenx -t parser.odin)" parser.odin
@@ -98,6 +99,7 @@ Launch the TUI standalone or load a file into the `[?] Test Probes` pane for liv
 | `-x`, `--neg <str>` | Negative example that must be rejected (repeatable) |
 | `-u`, `--unanchored` | Synthesize unanchored substring patterns instead of `^...$` |
 | `-h`, `--help` | Show help message and exit |
+| `-` | Read target text from standard input (`stdin`) instead of a file |
 | `--` | End of command flags |
 
 ---

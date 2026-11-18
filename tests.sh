@@ -8,6 +8,8 @@ if [[ -f ./regenx ]]; then
     './regenx -n "(?<!return )new_node\(" parser.odin'
     './regenx -in "bitmap_(digit|word|space)" parser.odin'
     'cat vm.odin | ./regenx -c "case \."'
+    'cat vm.odin | ./regenx -c "case \." -'
+    'printf "alpha\nfoo-bar\nbeta\n" | ./regenx -n "-" -'
     './regenx -n -- "-> \(" parser.odin'
     './regenx "(?<=parse_\w+)proc" parser.odin'
     'echo "hello" | ./regenx'

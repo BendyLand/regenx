@@ -13,13 +13,18 @@ run_cli :: proc(opts: Options) -> int {
 	prog := compile(ast, context.temp_allocator)
 	data: []byte
 	err: os.Error
-	if opts.filename == "" {
+	is_stdin := opts.filename == "" || opts.filename == "-"
+	if is_stdin {
 		data, err = os.read_entire_file(os.stdin, context.allocator)
 	} else {
 		data, err = os.read_entire_file(opts.filename, context.allocator)
 	}
 	if err != nil {
-		fmt.eprintf("regenx: could not read file %q\n", opts.filename)
+		if is_stdin {
+			fmt.eprintln("regenx: could not read from stdin")
+		} else {
+			fmt.eprintf("regenx: could not read file %q\n", opts.filename)
+		}
 		return 2
 	}
 	defer delete(data)

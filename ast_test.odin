@@ -49,3 +49,38 @@ test_vm_execution :: proc(t: ^testing.T) {
 	testing.expect_value(t, caps[0], 8) // starts right after '$'
 	testing.expect_value(t, caps[1], 13) // ends after '5'
 }
+
+@(test)
+test_parse_args_stdin :: proc(t: ^testing.T) {
+	defer free_all(context.temp_allocator)
+	alloc := context.temp_allocator
+
+	// Explicit '-' target for CLI search
+	opts1 := parse_args([]string{"-in", "error", "-"}, alloc)
+	testing.expect_value(t, opts1.err, Arg_Error.None)
+	testing.expect_value(t, opts1.mode, Run_Mode.Search)
+	testing.expect_value(t, opts1.ignore_case, true)
+	testing.expect_value(t, opts1.line_numbers, true)
+	testing.expect_value(t, opts1.pattern, "error")
+	testing.expect_value(t, opts1.filename, "-")
+
+	// Searching for literal '-' pattern against stdin '-'
+	opts2 := parse_args([]string{"-", "-"}, alloc)
+	testing.expect_value(t, opts2.err, Arg_Error.None)
+	testing.expect_value(t, opts2.mode, Run_Mode.Search)
+	testing.expect_value(t, opts2.pattern, "-")
+	testing.expect_value(t, opts2.filename, "-")
+
+	// Searching for literal '-' pattern against a file
+	opts3 := parse_args([]string{"-", "parser.odin"}, alloc)
+	testing.expect_value(t, opts3.err, Arg_Error.None)
+	testing.expect_value(t, opts3.mode, Run_Mode.Search)
+	testing.expect_value(t, opts3.pattern, "-")
+	testing.expect_value(t, opts3.filename, "parser.odin")
+
+	// Explicit '-' target for interactive TUI
+	opts4 := parse_args([]string{"-t", "-"}, alloc)
+	testing.expect_value(t, opts4.err, Arg_Error.None)
+	testing.expect_value(t, opts4.mode, Run_Mode.TUI)
+	testing.expect_value(t, opts4.filename, "-")
+}
