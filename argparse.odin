@@ -1,4 +1,4 @@
-package grepback
+package regenx
 
 import "core:fmt"
 import "core:strings"

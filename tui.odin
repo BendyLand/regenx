@@ -1,4 +1,4 @@
-package grepback
+package regenx
 
 import "core:c"
 import "core:fmt"
@@ -60,13 +60,13 @@ TUI_State :: struct {
 
 run_tui :: proc(opts: Options) -> int {
 	if !os.is_tty(os.stdin) || !os.is_tty(os.stdout) {
-		fmt.eprintln("grepback: interactive TUI requires a terminal (TTY)")
+		fmt.eprintln("regenx: interactive TUI requires a terminal (TTY)")
 		return 2
 	}
 
 	orig_termios: posix.termios
 	if posix.tcgetattr(posix.STDIN_FILENO, &orig_termios) != .OK {
-		fmt.eprintln("grepback: failed to read terminal attributes")
+		fmt.eprintln("regenx: failed to read terminal attributes")
 		return 2
 	}
 
@@ -79,7 +79,7 @@ run_tui :: proc(opts: Options) -> int {
 	raw.c_cc[.VTIME] = 0
 
 	if posix.tcsetattr(posix.STDIN_FILENO, .TCSAFLUSH, &raw) != .OK {
-		fmt.eprintln("grepback: failed to enable raw terminal mode")
+		fmt.eprintln("regenx: failed to enable raw terminal mode")
 		return 2
 	}
 	// Switch to alternate screen buffer and hide cursor; restore everything on exit
@@ -185,7 +185,7 @@ render_tui :: proc(s: ^TUI_State) {
 	case_str := s.ignore_case ? "CASE-INSENSITIVE" : "CASE-SENSITIVE"
 	fmt.sbprintf(
 		&b,
-		"\x1b[1;36m grepback TUI\x1b[0m  |  \x1b[33m%s\x1b[0m  |  \x1b[33m%s\x1b[0m\r\n",
+		"\x1b[1;36m regenx TUI\x1b[0m  |  \x1b[33m%s\x1b[0m  |  \x1b[33m%s\x1b[0m\r\n",
 		mode_str,
 		case_str,
 	)

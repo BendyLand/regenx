@@ -1,4 +1,4 @@
-package grepback
+package regenx
 
 MAX_GROUPS :: 16
 

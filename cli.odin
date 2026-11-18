@@ -1,4 +1,4 @@
-package grepback
+package regenx
 
 import "core:fmt"
 import "core:os"
@@ -7,7 +7,7 @@ import "core:strings"
 run_cli :: proc(opts: Options) -> int {
 	ast, p_err := parse(opts.pattern, opts.ignore_case, context.temp_allocator)
 	if p_err != .None {
-		fmt.eprintf("grepback: parse error (%v) in pattern %q\n", p_err, opts.pattern)
+		fmt.eprintf("regenx: parse error (%v) in pattern %q\n", p_err, opts.pattern)
 		return 2
 	}
 	prog := compile(ast, context.temp_allocator)
@@ -19,7 +19,7 @@ run_cli :: proc(opts: Options) -> int {
 		data, err = os.read_entire_file(opts.filename, context.allocator)
 	}
 	if err != nil {
-		fmt.eprintf("grepback: could not read file %q\n", opts.filename)
+		fmt.eprintf("regenx: could not read file %q\n", opts.filename)
 		return 2
 	}
 	defer delete(data)
@@ -106,7 +106,7 @@ run :: proc() -> int {
 	defer free_all(context.temp_allocator)
 	args := parse_args(os.args[1:], context.temp_allocator)
 	if args.err != .None {
-		fmt.eprintfln("grepback: %s", args.err_msg)
+		fmt.eprintfln("regenx: %s", args.err_msg)
 		print_usage()
 		return 2
 	}
@@ -126,7 +126,7 @@ run :: proc() -> int {
 
 run_headless_synth :: proc(opts: Options) -> int {
 	if len(opts.pos_examples) == 0 {
-		fmt.eprintln("grepback: --synth requires at least one -p / --pos example")
+		fmt.eprintln("regenx: --synth requires at least one -p / --pos example")
 		return 2
 	}
 	results := synthesize(

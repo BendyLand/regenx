@@ -1,13 +1,13 @@
-package grepback
+package regenx
 
 import "core:fmt"
 
 print_usage :: proc() {
 	fmt.println(
 		`Usage:
-  grepback [flags] <pattern> [<file>]      Search file or stdin for pattern
-  grepback [-t | --tui] [<file>]           Launch interactive synthesizer TUI
-  grepback -p <str> [-x <str>] [<file>]    Synthesize regex from examples
+  regenx [flags] <pattern> [<file>]      Search file or stdin for pattern
+  regenx [-t | --tui] [<file>]           Launch interactive synthesizer TUI
+  regenx -p <str> [-x <str>] [<file>]    Synthesize regex from examples
 
 Search Flags:
   -i, --ignore-case      Case-insensitive matching

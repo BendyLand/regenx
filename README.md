@@ -1,8 +1,8 @@
-# grepback
+# regenx
 
 A fast, zero-dependency regex search engine and **Programming-by-Example (PBE) regex synthesizer** written in [Odin](https://odin-lang.org/).
 
-`grepback` pairs a custom bytecode regex VM (with lookaround and capture group support) with an interactive terminal UI and a Minimum Description Length (MDL) synthesis engine that infers human-readable regular expressions from positive and negative examples.
+`regenx` pairs a custom bytecode regex VM (with lookaround and capture group support) with an interactive terminal UI and a Minimum Description Length (MDL) synthesis engine that infers human-readable regular expressions from positive and negative examples.
 
 ---
 
@@ -21,7 +21,7 @@ Requires an Odin compiler toolchain (`odin`). On POSIX/Linux systems:
 
 ```bash
 # Build the binary
-odin build . -out:grepback
+odin build . -out:regenx
 
 # Run the unit test suite
 odin test .
@@ -31,7 +31,7 @@ odin test .
 
 ## Usage
 
-Running `grepback` with no arguments prints the usage summary.
+Running `regenx` with no arguments prints the usage summary.
 
 ### 1. Regex Search (CLI)
 
@@ -39,16 +39,16 @@ Search is **unanchored** (substring-based) by default and reads from a file or `
 
 ```bash
 # Search a file with line numbers
-./grepback -n "\w+(?= :: proc)" parser.odin
+./regenx -n "\w+(?= :: proc)" parser.odin
 
 # Print only the matched substrings (-o)
-./grepback -o "parse_\w+" parser.odin
+./regenx -o "parse_\w+" parser.odin
 
 # Count matching lines (-c) case-insensitively (-i)
-./grepback -ic "error" app.log
+./regenx -ic "error" app.log
 
 # Search from stdin
-cat server.log | ./grepback "status=5\d\d"
+cat server.log | ./regenx "status=5\d\d"
 ```
 
 ### 2. Headless Regex Synthesis (`-p` / `-x`)
@@ -57,10 +57,10 @@ Synthesize ranked regex candidates from positive (`-p`) and negative (`-x`) exam
 
 ```bash
 # Anchored token synthesis
-./grepback -p "user_7" -p "user_42" -p "user_1089" -x "user_admin" -x "guest_42"
+./regenx -p "user_7" -p "user_42" -p "user_1089" -x "user_admin" -x "guest_42"
 
 # Unanchored log field extraction (-u)
-./grepback -u \
+./regenx -u \
   -p "2026-11-17T14:01:02Z status=502 latency=120ms" \
   -p "2026-11-17T14:01:05Z status=504 latency=3000ms" \
   -x "2026-11-17T14:01:08Z status=200 latency=12ms"
@@ -72,13 +72,13 @@ Launch the TUI standalone or load a file into the `[?] Test Probes` pane for liv
 
 ```bash
 # Launch empty TUI
-./grepback -t
+./regenx -t
 
 # Load a file for live regex preview and example selection
-./grepback -t parser.odin
+./regenx -t parser.odin
 
 # Compose the synthesized regex directly into a CLI search
-./grepback -n "$(./grepback -t parser.odin)" parser.odin
+./regenx -n "$(./regenx -t parser.odin)" parser.odin
 ```
 
 ---
