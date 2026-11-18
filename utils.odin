@@ -5,9 +5,9 @@ import "core:fmt"
 print_usage :: proc() {
 	fmt.println(
 		`Usage:
-  regenx [flags] <pattern> [<file>|-]    Search file or stdin for pattern
-  regenx [-t | --tui] [<file>|-]         Launch interactive synthesizer TUI
-  regenx -p <str> [-x <str>] [<file>]    Synthesize regex from examples
+  regenx [flags] <pattern> <path|->      Search file, directory, or stdin for pattern
+  regenx [-t | --tui] [<path>|-]         Launch interactive synthesizer TUI
+  regenx -p <str> [-x <str>]             Synthesize regex from examples
 
 Search Flags:
   -i, --ignore-case      Case-insensitive matching
@@ -15,6 +15,7 @@ Search Flags:
   -n, --line-number      Prefix output lines with line numbers
   -c, --count            Print only a count of matching lines
   -o, --only-matching    Print only the matched parts of a line
+      --no-recursive     Do not descend into nested directories
       --no-color         Disable ANSI color highlighting
 
 Synthesizer Flags:

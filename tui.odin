@@ -64,9 +64,14 @@ run_tui :: proc(opts: Options) -> int {
 		fmt.eprintln("regenx: interactive TUI requires a terminal (TTY)")
 		return 2
 	}
+	if opts.filename == "-" && os.is_tty(os.stdin) {
+		fmt.eprintln("regenx: '-' requires piped or redirected standard input")
+		return 2
+	}
 
 	probe_data: []byte
 	has_probe_data := false
+	is_dir_target := false
 	read_stdin := opts.filename == "-" || (opts.filename == "" && !os.is_tty(os.stdin))
 	if read_stdin {
 		err: os.Error
@@ -77,10 +82,14 @@ run_tui :: proc(opts: Options) -> int {
 		}
 		has_probe_data = true
 	} else if opts.filename != "" {
-		err: os.Error
-		probe_data, err = os.read_entire_file(opts.filename, context.temp_allocator)
-		if err == nil {
-			has_probe_data = true
+		if os.is_directory(opts.filename) {
+			is_dir_target = true
+		} else {
+			err: os.Error
+			probe_data, err = os.read_entire_file(opts.filename, context.temp_allocator)
+			if err == nil {
+				has_probe_data = true
+			}
 		}
 	}
 
@@ -147,7 +156,22 @@ run_tui :: proc(opts: Options) -> int {
 	}
 	for s in opts.pos_examples do append(&state.pos_list, strings.clone(s))
 	for s in opts.neg_examples do append(&state.neg_list, strings.clone(s))
-	if has_probe_data {
+	if is_dir_target {
+		files := make([dynamic]string, context.temp_allocator)
+		if collect_dir_files(opts.filename, !opts.no_recursive, &files, context.temp_allocator) == nil {
+			for f in files {
+				if data, err := os.read_entire_file(f, context.temp_allocator);
+				   err == nil && !is_binary_data(data) {
+					it := string(data)
+					for line in strings.split_lines_iterator(&it) {
+						if len(line) > 0 {
+							append(&state.probe_list, strings.clone(line))
+						}
+					}
+				}
+			}
+		}
+	} else if has_probe_data {
 		it := string(probe_data)
 		for line in strings.split_lines_iterator(&it) {
 			if len(line) > 0 {

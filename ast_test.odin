@@ -1,5 +1,7 @@
 package regenx
 
+import "core:fmt"
+import "core:os"
 import "core:testing"
 
 @(test)
@@ -83,4 +85,72 @@ test_parse_args_stdin :: proc(t: ^testing.T) {
 	testing.expect_value(t, opts4.err, Arg_Error.None)
 	testing.expect_value(t, opts4.mode, Run_Mode.TUI)
 	testing.expect_value(t, opts4.filename, "-")
+
+	// --no-recursive flag with directory target
+	opts5 := parse_args([]string{"--no-recursive", "proc", "src/"}, alloc)
+	testing.expect_value(t, opts5.err, Arg_Error.None)
+	testing.expect_value(t, opts5.mode, Run_Mode.Search)
+	testing.expect_value(t, opts5.no_recursive, true)
+	testing.expect_value(t, opts5.pattern, "proc")
+	testing.expect_value(t, opts5.filename, "src/")
+
+	// Missing target path (single positional arg) should fail instead of hanging on stdin
+	opts6 := parse_args([]string{"only_pattern"}, alloc)
+	testing.expect_value(t, opts6.err, Arg_Error.Missing_Value)
+
+	// Bare '-' without pattern should fail
+	opts7 := parse_args([]string{"-"}, alloc)
+	testing.expect_value(t, opts7.err, Arg_Error.Missing_Value)
+
+	// Search flag with no positional args should fail
+	opts8 := parse_args([]string{"-n"}, alloc)
+	testing.expect_value(t, opts8.err, Arg_Error.Missing_Value)
+}
+
+@(test)
+test_directory_collection :: proc(t: ^testing.T) {
+	defer free_all(context.temp_allocator)
+	alloc := context.temp_allocator
+
+	tmp_dir, dir_err := os.make_directory_temp("", "regenx_dir_test_*", alloc)
+	testing.expect_value(t, dir_err, nil)
+	defer _ = os.remove_all(tmp_dir)
+
+	sub_dir := fmt.tprintf("%s/nested", tmp_dir)
+	deep_dir := fmt.tprintf("%s/nested/deep", tmp_dir)
+	git_dir := fmt.tprintf("%s/.git", tmp_dir)
+	testing.expect_value(t, os.make_directory_all(deep_dir), nil)
+	testing.expect_value(t, os.make_directory_all(git_dir), nil)
+
+	top_file := fmt.tprintf("%s/alpha.txt", tmp_dir)
+	sub_file := fmt.tprintf("%s/beta.txt", sub_dir)
+	deep_file := fmt.tprintf("%s/gamma.txt", deep_dir)
+	git_file := fmt.tprintf("%s/HEAD", git_dir)
+
+	testing.expect_value(t, os.write_entire_file(top_file, "hello top\n"), nil)
+	testing.expect_value(t, os.write_entire_file(sub_file, "hello sub\n"), nil)
+	testing.expect_value(t, os.write_entire_file(deep_file, "hello deep\n"), nil)
+	testing.expect_value(t, os.write_entire_file(git_file, "ref: refs/heads/main\n"), nil)
+
+	// Default recursive collection (skips .git, descends into nested & deep)
+	rec_files := make([dynamic]string, alloc)
+	testing.expect_value(t, collect_dir_files(tmp_dir, true, &rec_files, alloc), nil)
+	testing.expect_value(t, len(rec_files), 3)
+	if len(rec_files) == 3 {
+		testing.expect_value(t, rec_files[0], top_file)
+		testing.expect_value(t, rec_files[1], sub_file)
+		testing.expect_value(t, rec_files[2], deep_file)
+	}
+
+	// Non-recursive collection (--no-recursive)
+	flat_files := make([dynamic]string, alloc)
+	testing.expect_value(t, collect_dir_files(tmp_dir, false, &flat_files, alloc), nil)
+	testing.expect_value(t, len(flat_files), 1)
+	if len(flat_files) == 1 {
+		testing.expect_value(t, flat_files[0], top_file)
+	}
+
+	// Binary detection
+	testing.expect(t, !is_binary_data(transmute([]byte)string("plain text\n")))
+	testing.expect(t, is_binary_data([]byte{'E', 'L', 'F', 0, 1, 2}))
 }
