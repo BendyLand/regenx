@@ -5,8 +5,8 @@ import "core:fmt"
 print_usage :: proc() {
 	fmt.println(
 		`Usage:
-  regenx [flags] <pattern> [<file>]      Search file or stdin for pattern
-  regenx [-t | --tui] [<file>]           Launch interactive synthesizer TUI
+  regenx [flags] <pattern> [<file>|-]    Search file or stdin for pattern
+  regenx [-t | --tui] [<file>|-]         Launch interactive synthesizer TUI
   regenx -p <str> [-x <str>] [<file>]    Synthesize regex from examples
 
 Search Flags:
@@ -21,8 +21,10 @@ Synthesizer Flags:
   -t, --tui, --synth     Force interactive TUI mode
   -p, --pos <str>        Positive example to match (repeatable)
   -x, --neg <str>        Negative example to reject (repeatable)
+  -u, --unanchored       Synthesize unanchored substring patterns
 
 General:
+  -                      Read target text from standard input (stdin)
   -h, --help             Show this help message and exit
   --                     End of command flags`,
 	)

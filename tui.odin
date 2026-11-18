@@ -56,16 +56,51 @@ TUI_State :: struct {
 	search_query:   string,
 	search_status:  string,
 	output_on_exit: bool,
+	tty_in:         ^os.File,
 }
 
 run_tui :: proc(opts: Options) -> int {
-	if !os.is_tty(os.stdin) || !os.is_tty(os.stdout) {
+	if !os.is_tty(os.stdout) {
 		fmt.eprintln("regenx: interactive TUI requires a terminal (TTY)")
 		return 2
 	}
 
+	probe_data: []byte
+	has_probe_data := false
+	read_stdin := opts.filename == "-" || (opts.filename == "" && !os.is_tty(os.stdin))
+	if read_stdin {
+		err: os.Error
+		probe_data, err = os.read_entire_file(os.stdin, context.temp_allocator)
+		if err != nil {
+			fmt.eprintln("regenx: could not read from stdin")
+			return 2
+		}
+		has_probe_data = true
+	} else if opts.filename != "" {
+		err: os.Error
+		probe_data, err = os.read_entire_file(opts.filename, context.temp_allocator)
+		if err == nil {
+			has_probe_data = true
+		}
+	}
+
+	tty_in := os.stdin
+	tty_fd: posix.FD = posix.STDIN_FILENO
+	if read_stdin || !os.is_tty(os.stdin) {
+		opened, open_err := os.open("/dev/tty")
+		if open_err != nil {
+			fmt.eprintln("regenx: interactive TUI requires a terminal (TTY)")
+			return 2
+		}
+		tty_in = opened
+		tty_fd = posix.FD(os.fd(opened))
+	}
+	defer if tty_in != os.stdin {
+		os.close(tty_in)
+	}
+
 	orig_termios: posix.termios
-	if posix.tcgetattr(posix.STDIN_FILENO, &orig_termios) != .OK {
+	if posix.tcgetattr(tty_fd, &orig_termios) != .OK {
 		fmt.eprintln("regenx: failed to read terminal attributes")
 		return 2
 	}
@@ -78,19 +113,26 @@ run_tui :: proc(opts: Options) -> int {
 	raw.c_cc[.VMIN] = 1
 	raw.c_cc[.VTIME] = 0
 
-	if posix.tcsetattr(posix.STDIN_FILENO, .TCSAFLUSH, &raw) != .OK {
+	if posix.tcsetattr(tty_fd, .TCSAFLUSH, &raw) != .OK {
 		fmt.eprintln("regenx: failed to enable raw terminal mode")
 		return 2
+	}
+	chosen_out: string
+	defer if len(chosen_out) > 0 {
+		// Print after alternate screen restore so shell command substitution captures it cleanly
+		fmt.println(chosen_out)
+		delete(chosen_out)
 	}
 	// Switch to alternate screen buffer and hide cursor; restore everything on exit
 	fmt.print("\x1b[?1049h\x1b[?25l")
 	defer {
 		fmt.print("\x1b[?25h\x1b[?1049l")
-		posix.tcsetattr(posix.STDIN_FILENO, .TCSAFLUSH, &orig_termios)
+		posix.tcsetattr(tty_fd, .TCSAFLUSH, &orig_termios)
 	}
 	state := TUI_State {
 		anchored    = !opts.unanchored,
 		ignore_case = opts.ignore_case,
+		tty_in      = tty_in,
 	}
 	defer {
 		for s in state.pos_list do delete(s)
@@ -105,14 +147,11 @@ run_tui :: proc(opts: Options) -> int {
 	}
 	for s in opts.pos_examples do append(&state.pos_list, strings.clone(s))
 	for s in opts.neg_examples do append(&state.neg_list, strings.clone(s))
-	if opts.filename != "" {
-		data, err := os.read_entire_file(opts.filename, context.temp_allocator)
-		if err == nil {
-			it := string(data)
-			for line in strings.split_lines_iterator(&it) {
-				if len(line) > 0 {
-					append(&state.probe_list, strings.clone(line))
-				}
+	if has_probe_data {
+		it := string(probe_data)
+		for line in strings.split_lines_iterator(&it) {
+			if len(line) > 0 {
+				append(&state.probe_list, strings.clone(line))
 			}
 		}
 	}
@@ -124,12 +163,9 @@ run_tui :: proc(opts: Options) -> int {
 		}
 	}
 	if state.output_on_exit && len(state.results) > 0 {
-		chosen := state.results[min(state.selected_cand, len(state.results) - 1)].pattern
-		// Print after alternate screen restore so shell command substitution captures it cleanly
-		fmt.print("\x1b[?25h\x1b[?1049l")
-		posix.tcsetattr(posix.STDIN_FILENO, .TCSAFLUSH, &orig_termios)
-		fmt.println(chosen)
-		os.exit(0)
+		chosen_out = strings.clone(
+			state.results[min(state.selected_cand, len(state.results) - 1)].pattern,
+		)
 	}
 	return 0
 }
@@ -399,7 +435,7 @@ get_pane_list :: proc(s: ^TUI_State, pane: Pane) -> ^[dynamic]string {
 @(private = "file")
 handle_input :: proc(s: ^TUI_State) -> bool {
 	buf: [8]u8
-	n, err := os.read(os.stdin, buf[:])
+	n, err := os.read(s.tty_in, buf[:])
 	if err != nil || n <= 0 {
 		return false
 	}
