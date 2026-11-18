@@ -35,11 +35,17 @@ Running `regenx` with no arguments prints the usage summary.
 
 ### 1. Regex Search (CLI)
 
-Search is **unanchored** (substring-based) by default and reads from a file or `stdin`:
+Search is **unanchored** (substring-based) by default and reads from a file, directory (recursively by default), or `stdin`:
 
 ```bash
 # Search a file with line numbers
 ./regenx -n "\w+(?= :: proc)" parser.odin
+
+# Recursively search a directory
+./regenx -n "parse_\w+" .
+
+# Search only top-level files in a directory (do not descend)
+./regenx --no-recursive -c "proc" .
 
 # Print only the matched substrings (-o)
 ./regenx -o "parse_\w+" parser.odin
@@ -47,7 +53,7 @@ Search is **unanchored** (substring-based) by default and reads from a file or `
 # Count matching lines (-c) case-insensitively (-i)
 ./regenx -ic "error" app.log
 
-# Search from stdin using '-' (or by omitting the file argument)
+# Search from stdin using '-'
 cat server.log | ./regenx "status=5\d\d" -
 ```
 
@@ -93,6 +99,7 @@ cat server.log | ./regenx -t -
 | `-n`, `--line-number` | Prefix output lines with 1-based line numbers |
 | `-c`, `--count` | Print only a count of matching lines |
 | `-o`, `--only-matching` | Print only the matched parts of each line |
+| `--no-recursive` | Do not descend into nested directories when searching a directory |
 | `--no-color` | Disable ANSI color highlighting |
 | `-t`, `--tui`, `--synth` | Launch interactive TUI workbench |
 | `-p`, `--pos <str>` | Positive example that must match (repeatable) |

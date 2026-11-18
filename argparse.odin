@@ -29,6 +29,7 @@ Options :: struct {
 	count_only:   bool,
 	only_match:   bool,
 	no_color:     bool,
+	no_recursive: bool,
 	unanchored:   bool,
 	pos_examples: [dynamic]string,
 	neg_examples: [dynamic]string,
@@ -83,6 +84,8 @@ parse_args :: proc(args: []string, allocator := context.allocator) -> (opts: Opt
 				opts.only_match = true
 			case "no-color":
 				opts.no_color = true
+			case "no-recursive", "no-recurse":
+				opts.no_recursive = true
 			case "unanchored":
 				opts.unanchored = true
 			case "pos":
@@ -151,33 +154,55 @@ parse_args :: proc(args: []string, allocator := context.allocator) -> (opts: Opt
 	if opts.mode == .Help {
 		return opts
 	}
+	has_search_flags :=
+		opts.ignore_case ||
+		opts.invert_match ||
+		opts.line_numbers ||
+		opts.count_only ||
+		opts.only_match ||
+		opts.no_color ||
+		opts.no_recursive ||
+		opts.unanchored ||
+		end_of_flags
+
 	// Resolve final Run_Mode, pattern, and filename
-	if explicit_tui || len(opts.pos_examples) > 0 {
+	if explicit_tui || len(opts.pos_examples) > 0 || len(opts.neg_examples) > 0 {
 		if len(opts.positional) > 1 {
-			return fail(&opts, .Too_Many_Args, "expected at most 1 probe file argument")
+			return fail(&opts, .Too_Many_Args, "expected at most 1 probe path argument")
 		}
 		if len(opts.positional) == 1 {
 			opts.filename = opts.positional[0]
 		}
 		opts.mode = explicit_tui ? .TUI : .Synth
-	}
-	else if len(opts.positional) == 0 {
-		// Old behavior was to default to TUI with no args.
-		// Uncomment this to restore that behavior.
-		// if !os.is_tty(os.stdin) {
-		// 	return fail(&opts, .Missing_Value, "missing search pattern (use -t to launch TUI)")
-		// }
+	} else if len(opts.positional) == 0 {
+		if has_search_flags {
+			return fail(
+				&opts,
+				.Missing_Value,
+				"missing search pattern and target path (pass a file, directory, or '-' for stdin)",
+			)
+		}
 		opts.mode = .Help
-	}
-	else {
+	} else if len(opts.positional) == 1 {
+		if opts.positional[0] == "-" {
+			return fail(
+				&opts,
+				.Missing_Value,
+				"missing search pattern before '-' (usage: regenx [flags] <pattern> -)",
+			)
+		}
+		return fail(
+			&opts,
+			.Missing_Value,
+			"missing target path (pass a file, directory, or '-' for stdin)",
+		)
+	} else {
 		if len(opts.positional) > 2 {
-			return fail(&opts, .Too_Many_Args, "expected at most 1 filename argument")
+			return fail(&opts, .Too_Many_Args, "expected at most 1 target path argument")
 		}
 		opts.mode = .Search
 		opts.pattern = opts.positional[0]
-		if len(opts.positional) == 2 {
-			opts.filename = opts.positional[1]
-		}
+		opts.filename = opts.positional[1]
 	}
 	return opts
 }
